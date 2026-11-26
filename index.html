@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b12" id="meta-theme-color" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>İş Pedagojisi Quiz — Usta Öğreticilik</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --blue: #0A84FF;
+      --green: #30D158;
+      --red: #FF453A;
+      --orange: #FF9F0A;
+      --bg: #0b0b12;
+      --phone-bg: rgba(16, 16, 24, 0.94);
+      --card: rgba(255, 255, 255, 0.08);
+      --card-border: rgba(255, 255, 255, 0.14);
+      --text: #f5f5f7;
+      --text-dim: #98989f;
+      --select-bg: #1c1c26;
+    }
+
+    body.light-theme {
+      --blue: #007AFF;
+      --green: #28CD41;
+      --red: #FF3B30;
+      --orange: #FF9500;
+      --bg: #e5e5ea;
+      --phone-bg: rgba(255, 255, 255, 0.96);
+      --card: rgba(0, 0, 0, 0.05);
+      --card-border: rgba(0, 0, 0, 0.12);
+      --text: #1c1c1e;
+      --text-dim: #636366;
+      --select-bg: #ffffff;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      user-select: none;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(1200px 800px at 20% -10%, rgba(94, 92, 230, .22), transparent 60%),
+        radial-gradient(1000px 700px at 110% 110%, rgba(10, 132, 255, .16), transparent 60%),
+        var(--bg);
+    }
+
+    .phone {
+      position: relative;
+      width: 100%;
+      max-width: 430px;
+      height: 100dvh;
+      max-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      background: var(--phone-bg);
+      backdrop-filter: blur(30px);
+      overflow: hidden;
+    }
+
+    @media (min-width: 500px) and (min-height: 760px) {
+      .phone {
+        height: min(860px, 94vh);
+        max-height: 860px;
+        border-radius: 48px;
+        border: 10px solid #1c1c22;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, .55), 0 0 0 2px #33333c;
+      }
+    }
+
+    .statusbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: calc(env(safe-area-inset-top, 0px) + 12px) 22px 6px;
+      font-size: 14px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+    }
+
+    .screen {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 20px;
+      gap: 12px;
+      overflow-y: auto;
+      animation: fadeIn .25s ease;
+    }
+    .screen.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .app-icon { font-size: 48px; }
+    h1 { font-size: 28px; font-weight: 800; letter-spacing: -.5px; }
+    .subtitle { color: var(--text-dim); text-align: center; font-size: 14px; line-height: 1.4; }
+    .hidden { display: none !important; }
+
+    .btn-resume {
+      width: 100%;
+      padding: 12px 15px;
+      border-radius: 15px;
+      border: 1.5px solid var(--orange);
+      background: rgba(255, 159, 10, 0.14);
+      color: var(--text);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-resume small { color: var(--orange); font-weight: 700; }
+
+    .info-card {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 13px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 13.5px;
+      font-weight: 600;
+    }
+
+    .select-box {
+      background: var(--select-bg);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 7px 9px;
+      font-size: 12.5px;
+      font-family: inherit;
+      max-width: 185px;
+    }
+
+    .segmented {
+      display: flex;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 2px;
+    }
+    .seg-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      padding: 5px 11px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .seg-btn.active { background: var(--blue); color: #fff; }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 15px;
+      background: linear-gradient(135deg, #0A84FF, #5E5CE6);
+      color: #fff;
+      font-size: 15.5px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(10, 132, 255, .32);
+    }
+    .btn-primary:active { transform: scale(.98); }
+
+    .secondary-actions { display: flex; gap: 10px; width: 100%; }
+
+    .btn-secondary {
+      flex: 1;
+      padding: 12px 10px;
+      border-radius: 14px;
+      border: 1px solid var(--card-border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-secondary.full-w { width: 100%; flex: none; }
+    .btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Sınav Ekranı */
+    #screen-quiz { justify-content: flex-start; padding-top: 6px; }
+    .quiz-header { width: 100%; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    .mini-btn {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      border-radius: 11px;
+      padding: 5px 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .q-counter { font-size: 12.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; }
+    .score-badge {
+      font-size: 12.5px;
+      font-weight: 700;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      padding: 5px 11px;
+      border-radius: 20px;
+    }
+
+    .progress-track { width: 100%; height: 5px; background: var(--card); border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+    .progress-bar { height: 100%; width: 0%; border-radius: 3px; background: linear-gradient(90deg, #0A84FF, #5E5CE6); transition: width .35s ease; }
+
+    .question-wrap { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 2px; }
+    .unit-tag { font-size: 11px; font-weight: 700; color: var(--blue); background: rgba(10, 132, 255, 0.14); padding: 3px 10px; border-radius: 10px; }
+    .question { font-size: 16px; font-weight: 700; line-height: 1.38; text-align: center; }
+
+    .options { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      width: 100%;
+      padding: 11px 13px;
+      background: var(--card);
+      border: 1.5px solid var(--card-border);
+      border-radius: 14px;
+      color: var(--text);
+      font-size: 13.5px;
+      line-height: 1.32;
+      font-family: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .option .letter {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10, 132, 255, .18);
+      color: var(--blue);
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .option.correct { background: rgba(48, 209, 88, .18); border-color: var(--green); }
+    .option.correct .letter { background: var(--green); color: #06130a; }
+    .option.wrong { background: rgba(255, 69, 58, .16); border-color: var(--red); }
+    .option.wrong .letter { background: var(--red); color: #fff; }
+    .option.reveal { border-color: var(--green); }
+    .option.reveal .letter { background: var(--green); color: #06130a; }
+    .option.disabled { pointer-events: none; }
+
+    .feedback-area {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .feedback { font-size: 13.5px; font-weight: 700; text-align: center; }
+    .feedback.ok { color: var(--green); }
+    .feedback.no { color: var(--red); }
+
+    .explanation-box {
+      width: 100%;
+      background: rgba(10, 132, 255, 0.12);
+      border: 1px solid rgba(10, 132, 255, 0.35);
+      border-radius: 13px;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      line-height: 1.4;
+      color: var(--text);
+      text-align: left;
+    }
+    .explanation-box strong { color: var(--blue); display: block; margin-bottom: 2px; }
+
+    .btn-next {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 14px;
+      background: var(--blue);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .btn-book-ref {
+      width: 100%;
+      padding: 11px;
+      border-radius: 13px;
+      border: 1.5px solid var(--orange);
+      background: rgba(255, 159, 10, 0.14);
+      color: var(--text);
+      font-size: 13.5px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* Gömülü PDF Okuyucu Ekranı */
+    #screen-pdf {
+      padding: 8px 12px 12px;
+      gap: 8px;
+      justify-content: flex-start;
+    }
+    .pdf-toolbar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .pdf-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .pdf-frame {
+      width: 100%;
+      flex: 1;
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      background: #ffffff;
+    }
+
+    /* Sonuç Ekranı */
+    .result-ring { position: relative; display: flex; align-items: center; justify-content: center; }
+    #ring-fill { transition: stroke-dashoffset 1s ease; }
+    .result-center { position: absolute; display: flex; flex-direction: column; align-items: center; }
+    .result-score { font-size: 26px; font-weight: 800; }
+    .result-pct { font-size: 13px; color: var(--text-dim); font-weight: 600; }
+
+    .result-stats { display: flex; gap: 12px; width: 100%; }
+    .stat { flex: 1; background: var(--card); border: 1px solid var(--card-border); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; align-items: center; }
+    .stat-num { font-size: 26px; font-weight: 800; }
+    .stat-num.green { color: var(--green); }
+    .stat-num.red { color: var(--red); }
+    .stat-label { font-size: 12px; color: var(--text-dim); font-weight: 600; }
+
+    .home-indicator { flex-shrink: 0; width: 134px; height: 5px; border-radius: 3px; background: var(--text-dim); opacity: 0.4; margin: 4px auto calc(env(safe-area-inset-bottom, 0px) + 6px); }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="statusbar">
+      <span id="clock">09:41</span>
+      <div class="status-icons">
+        <button id="btn-theme" class="icon-btn" title="Temayı Değiştir">☀️</button>
+      </div>
+    </div>
+
+    <!-- BAŞLANGIÇ EKRANI -->
+    <section id="screen-start" class="screen active">
+      <div class="app-icon">🎓</div>
+      <h1>İş Pedagojisi</h1>
+      <p class="subtitle">Usta Öğreticilik Sınavı Hazırlık<br><strong id="info-count">Yükleniyor...</strong></p>
+
+      <button id="btn-resume" class="btn-resume hidden">
+        <span>⏯️ Kaldığın Yerden Devam Et</span>
+        <small id="resume-info">Soru 1</small>
+      </button>
+
+      <div class="info-card">
+        <div class="setting-row">
+          <span>📚 Soru Havuzu</span>
+          <select id="select-unit" class="select-box">
+            <option value="ALL">Tüm Sorular</option>
+            <option value="TEMEL">Temel & Türlendirilmiş</option>
+            <option value="SENARYO">Atölye Senaryoları</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <span>🔀 Soru Sırası</span>
+          <div class="segmented" id="order-toggle">
+            <button type="button" data-mode="sequential" class="seg-btn active">Sıralı</button>
+            <button type="button" data-mode="random" class="seg-btn">Karışık</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-start" class="btn-primary">Yeni Sınava Başla</button>
+
+      <div class="secondary-actions">
+        <button id="btn-review-wrong" class="btn-secondary">
+          ❌ Yanlışlarım (<span id="wrong-count">0</span>)
+        </button>
+        <button id="btn-open-pdf" class="btn-secondary">
+          📖 Ders Kitabı (PDF)
+        </button>
+      </div>
+    </section>
+
+    <!-- SINAV EKRANI -->
+    <section id="screen-quiz" class="screen">
+      <div class="quiz-header">
+        <button id="btn-home" class="mini-btn" title="Ana Menü">🏠</button>
+        <span id="q-counter" class="q-counter">Soru 1</span>
+        <span id="score-badge" class="score-badge">⭐ 0</span>
+      </div>
+
+      <div class="progress-track">
+        <div id="progress-bar" class="progress-bar"></div>
+      </div>
+
+      <div class="question-wrap">
+        <span id="q-unit-tag" class="unit-tag">İş Pedagojisi</span>
+        <h2 id="question-text" class="question">Soru yükleniyor...</h2>
+      </div>
+
+      <div id="options" class="options"></div>
+
+      <div id="feedback-area" class="feedback-area hidden">
+        <div id="feedback" class="feedback"></div>
+        <div id="explanation-box" class="explanation-box"></div>
+        <button id="btn-next" class="btn-next">Sonraki Soru ➔</button>
+        <button id="btn-wrong-book" class="btn-book-ref hidden">📖 İlgili Bölümü Kitapta Aç</button>
+      </div>
+    </section>
+
+    <!-- UYGULAMA İÇİ PDF OKUYUCU EKRANI -->
+    <section id="screen-pdf" class="screen">
+      <div class="pdf-toolbar">
+        <button id="btn-close-pdf" class="mini-btn">✕ Geri Dön</button>
+        <span id="pdf-page-label" class="pdf-title">Öğretim Materyali</span>
+        <a id="btn-ext-pdf" href="materyal.pdf" target="_blank" rel="noopener" class="mini-btn">↗ Tam Ekran</a>
+      </div>
+      <iframe id="pdf-iframe" class="pdf-frame" src="about:blank" title="Ders Kitabı"></iframe>
+    </section>
+
+    <!-- SONUÇ EKRANI -->
+    <section id="screen-result" class="screen">
+      <div class="result-ring">
+        <svg width="124" height="124" viewBox="0 0 124 124">
+          <circle cx="62" cy="62" r="52" stroke="var(--card-border)" stroke-width="10" fill="none" />
+          <circle id="ring-fill" cx="62" cy="62" r="52" stroke="var(--blue)" stroke-width="10" fill="none"
+                  stroke-dasharray="326.7" stroke-dashoffset="326.7" stroke-linecap="round"
+                  transform="rotate(-90 62 62)" />
+        </svg>
+        <div class="result-center">
+          <span id="result-score" class="result-score">0/0</span>
+          <span id="result-pct" class="result-pct">%0</span>
+        </div>
+      </div>
+
+      <h2 id="result-title">Tebrikler!</h2>
+      <p id="result-msg" class="subtitle"></p>
+
+      <div class="result-stats">
+        <div class="stat">
+          <span id="stat-correct" class="stat-num green">0</span>
+          <span class="stat-label">Doğru</span>
+        </div>
+        <div class="stat">
+          <span id="stat-wrong" class="stat-num red">0</span>
+          <span class="stat-label">Yanlış</span>
+        </div>
+      </div>
+
+      <button id="btn-restart" class="btn-primary">Tekrar Başla</button>
+      <button id="btn-result-home" class="btn-secondary full-w">Ana Ekrana Dön</button>
+    </section>
+
+    <div class="home-indicator"></div>
+  </div>
+
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
