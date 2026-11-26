@@ -2,14 +2,13 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
   <meta name="theme-color" content="#0b0b12" id="meta-theme-color" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>İş Pedagojisi Quiz — Usta Öğreticilik</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -47,7 +46,6 @@
       background: var(--bg);
       color: var(--text);
       overflow: hidden;
-      user-select: none;
     }
 
     body {
@@ -104,7 +102,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--text);
     }
 
     .screen {
@@ -116,6 +113,7 @@
       padding: 12px 20px;
       gap: 12px;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       animation: fadeIn .25s ease;
     }
     .screen.active { display: flex; }
@@ -151,17 +149,17 @@
       background: var(--card);
       border: 1px solid var(--card-border);
       border-radius: 18px;
-      padding: 13px 15px;
+      padding: 12px 14px;
       display: flex;
       flex-direction: column;
-      gap: 11px;
+      gap: 10px;
     }
 
     .setting-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       font-size: 13.5px;
       font-weight: 600;
     }
@@ -171,10 +169,10 @@
       color: var(--text);
       border: 1px solid var(--card-border);
       border-radius: 10px;
-      padding: 7px 9px;
-      font-size: 12.5px;
+      padding: 6px 9px;
+      font-size: 13px;
       font-family: inherit;
-      max-width: 185px;
+      max-width: 180px;
     }
 
     .segmented {
@@ -209,13 +207,12 @@
       cursor: pointer;
       box-shadow: 0 8px 20px rgba(10, 132, 255, .32);
     }
-    .btn-primary:active { transform: scale(.98); }
 
     .secondary-actions { display: flex; gap: 10px; width: 100%; }
 
     .btn-secondary {
       flex: 1;
-      padding: 12px 10px;
+      padding: 11px 10px;
       border-radius: 14px;
       border: 1px solid var(--card-border);
       background: var(--card);
@@ -229,24 +226,22 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 5px;
     }
     .btn-secondary.full-w { width: 100%; flex: none; }
     .btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
 
     /* Sınav Ekranı */
-    #screen-quiz { justify-content: flex-start; padding-top: 6px; }
     .quiz-header { width: 100%; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
     .mini-btn {
       background: var(--card);
       border: 1px solid var(--card-border);
       color: var(--text);
-      border-radius: 11px;
+      border-radius: 12px;
       padding: 5px 10px;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      text-decoration: none;
     }
     .q-counter { font-size: 12.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; }
     .score-badge {
@@ -259,25 +254,25 @@
     }
 
     .progress-track { width: 100%; height: 5px; background: var(--card); border-radius: 3px; overflow: hidden; flex-shrink: 0; }
-    .progress-bar { height: 100%; width: 0%; border-radius: 3px; background: linear-gradient(90deg, #0A84FF, #5E5CE6); transition: width .35s ease; }
+    .progress-bar { height: 100%; width: 0%; border-radius: 3px; background: linear-gradient(90deg, #0A84FF, #5E5CE6); transition: width .3s ease; }
 
-    .question-wrap { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 2px; }
+    .question-wrap { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px; }
     .unit-tag { font-size: 11px; font-weight: 700; color: var(--blue); background: rgba(10, 132, 255, 0.14); padding: 3px 10px; border-radius: 10px; }
     .question { font-size: 16px; font-weight: 700; line-height: 1.38; text-align: center; }
 
-    .options { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+    .options { width: 100%; display: flex; flex-direction: column; gap: 9px; }
     .option {
       display: flex;
       align-items: center;
       gap: 11px;
       width: 100%;
-      padding: 11px 13px;
+      padding: 12px 13px;
       background: var(--card);
       border: 1.5px solid var(--card-border);
       border-radius: 14px;
       color: var(--text);
-      font-size: 13.5px;
-      line-height: 1.32;
+      font-size: 13.8px;
+      line-height: 1.35;
       font-family: inherit;
       text-align: left;
       cursor: pointer;
@@ -301,43 +296,27 @@
     .option.wrong .letter { background: var(--red); color: #fff; }
     .option.reveal { border-color: var(--green); }
     .option.reveal .letter { background: var(--green); color: #06130a; }
-    .option.disabled { pointer-events: none; }
+    .option.disabled { pointer-events: none; opacity: .92; }
 
-    .feedback-area {
+    .explanation-box {
+      width: 100%;
+      padding: 11px 13px;
+      border-radius: 13px;
+      background: rgba(10, 132, 255, 0.12);
+      border: 1px solid rgba(10, 132, 255, 0.35);
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--text);
+      text-align: left;
+    }
+    .explanation-box strong { color: var(--blue); display: block; margin-bottom: 2px; font-size: 12px; }
+
+    .quiz-footer-actions {
       width: 100%;
       display: flex;
       flex-direction: column;
       gap: 8px;
       margin-top: 2px;
-    }
-    .feedback { font-size: 13.5px; font-weight: 700; text-align: center; }
-    .feedback.ok { color: var(--green); }
-    .feedback.no { color: var(--red); }
-
-    .explanation-box {
-      width: 100%;
-      background: rgba(10, 132, 255, 0.12);
-      border: 1px solid rgba(10, 132, 255, 0.35);
-      border-radius: 13px;
-      padding: 10px 12px;
-      font-size: 12.5px;
-      line-height: 1.4;
-      color: var(--text);
-      text-align: left;
-    }
-    .explanation-box strong { color: var(--blue); display: block; margin-bottom: 2px; }
-
-    .btn-next {
-      width: 100%;
-      padding: 13px;
-      border: none;
-      border-radius: 14px;
-      background: var(--blue);
-      color: #fff;
-      font-size: 15px;
-      font-weight: 700;
-      font-family: inherit;
-      cursor: pointer;
     }
 
     .btn-book-ref {
@@ -345,46 +324,70 @@
       padding: 11px;
       border-radius: 13px;
       border: 1.5px solid var(--orange);
-      background: rgba(255, 159, 10, 0.14);
+      background: rgba(255, 159, 10, 0.15);
       color: var(--text);
       font-size: 13.5px;
       font-weight: 700;
       font-family: inherit;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
     }
 
-    /* Gömülü PDF Okuyucu Ekranı */
+    /* Gömülü Mobil PDF Okuyucu (iPhone 16 Tam Uyumlu) */
     #screen-pdf {
-      padding: 8px 12px 12px;
-      gap: 8px;
+      padding: 8px 12px;
       justify-content: flex-start;
+      gap: 8px;
+      overflow: hidden;
     }
     .pdf-toolbar {
       width: 100%;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      padding: 6px 10px;
+      border-radius: 14px;
       flex-shrink: 0;
     }
-    .pdf-title {
+    .pdf-nav-group { display: flex; align-items: center; gap: 6px; }
+    .pdf-page-input {
+      width: 48px;
+      text-align: center;
+      background: var(--select-bg);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 4px;
       font-size: 13px;
       font-weight: 700;
-      color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
-    .pdf-frame {
+    .pdf-viewport {
       width: 100%;
       flex: 1;
-      border: 1px solid var(--card-border);
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y pinch-zoom;
+      background: #1c1c24;
       border-radius: 14px;
-      background: #ffffff;
+      border: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px;
+    }
+    #pdf-canvas {
+      display: block;
+      max-width: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+      background: #fff;
+    }
+    .pdf-status {
+      color: #fff;
+      font-size: 13px;
+      padding: 20px;
+      text-align: center;
     }
 
     /* Sonuç Ekranı */
@@ -429,8 +432,8 @@
           <span>📚 Soru Havuzu</span>
           <select id="select-unit" class="select-box">
             <option value="ALL">Tüm Sorular</option>
-            <option value="TEMEL">Temel & Türlendirilmiş</option>
-            <option value="SENARYO">Atölye Senaryoları</option>
+            <option value="TEMEL">Temel & Türlendirilmiş Sorular</option>
+            <option value="SENARYO">Atölye Senaryo Soruları</option>
           </select>
         </div>
 
@@ -474,22 +477,37 @@
 
       <div id="options" class="options"></div>
 
-      <div id="feedback-area" class="feedback-area hidden">
-        <div id="feedback" class="feedback"></div>
-        <div id="explanation-box" class="explanation-box"></div>
-        <button id="btn-next" class="btn-next">Sonraki Soru ➔</button>
-        <button id="btn-wrong-book" class="btn-book-ref hidden">📖 İlgili Bölümü Kitapta Aç</button>
+      <div id="explanation-box" class="explanation-box hidden">
+        <strong id="explanation-title">Bilgi / Kaynak:</strong>
+        <span id="explanation-text"></span>
+      </div>
+
+      <div id="quiz-footer-actions" class="quiz-footer-actions hidden">
+        <button id="btn-next-q" class="btn-primary">Sonraki Soru ➔</button>
+        <button id="btn-open-ref-pdf" class="btn-book-ref hidden">📖 İlgili Bölümü Kitapta Aç</button>
       </div>
     </section>
 
-    <!-- UYGULAMA İÇİ PDF OKUYUCU EKRANI -->
+    <!-- GÖMÜLÜ MOBİL PDF OKUYUCU EKRANI -->
     <section id="screen-pdf" class="screen">
       <div class="pdf-toolbar">
-        <button id="btn-close-pdf" class="mini-btn">✕ Geri Dön</button>
-        <span id="pdf-page-label" class="pdf-title">Öğretim Materyali</span>
-        <a id="btn-ext-pdf" href="materyal.pdf" target="_blank" rel="noopener" class="mini-btn">↗ Tam Ekran</a>
+        <button id="btn-close-pdf" class="mini-btn">✕ Geri</button>
+        <div class="pdf-nav-group">
+          <button id="btn-pdf-prev" class="mini-btn">◀</button>
+          <input type="number" id="pdf-page-num" class="pdf-page-input" value="1" min="1" />
+          <span id="pdf-page-total" style="font-size:12px;font-weight:700;">/ 227</span>
+          <button id="btn-pdf-next" class="mini-btn">▶</button>
+        </div>
+        <div class="pdf-nav-group">
+          <button id="btn-zoom-out" class="mini-btn">−</button>
+          <button id="btn-zoom-in" class="mini-btn">+</button>
+        </div>
       </div>
-      <iframe id="pdf-iframe" class="pdf-frame" src="about:blank" title="Ders Kitabı"></iframe>
+
+      <div class="pdf-viewport" id="pdf-viewport">
+        <div id="pdf-status" class="pdf-status">Ders kitabı yükleniyor...</div>
+        <canvas id="pdf-canvas"></canvas>
+      </div>
     </section>
 
     <!-- SONUÇ EKRANI -->

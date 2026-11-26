@@ -1,8 +1,6 @@
-/* ===== İş Pedagojisi Quiz — Uygulama Mantığı ===== */
+/* ===== İş Pedagojisi Quiz — iPhone & PWA Uyumlu Uygulama Mantığı ===== */
 (() => {
   "use strict";
-
-  const PDF_FILE = "materyal.pdf";
 
   const $ = (id) => document.getElementById(id);
   const screens = {
@@ -23,22 +21,23 @@
     orderToggle: $("order-toggle"),
     btnReviewWrong: $("btn-review-wrong"),
     wrongCount: $("wrong-count"),
-    btnOpenPdf: $("btn-open-pdf"),
-    btnClosePdf: $("btn-close-pdf"),
-    btnExtPdf: $("btn-ext-pdf"),
-    pdfPageLabel: $("pdf-page-label"),
-    pdfIframe: $("pdf-iframe"),
     qCounter: $("q-counter"),
     scoreBadge: $("score-badge"),
     progressBar: $("progress-bar"),
     qUnitTag: $("q-unit-tag"),
     questionText: $("question-text"),
     options: $("options"),
-    feedbackArea: $("feedback-area"),
-    feedback: $("feedback"),
     explanationBox: $("explanation-box"),
-    btnNext: $("btn-next"),
-    btnWrongBook: $("btn-wrong-book"),
+    explanationTitle: $("explanation-title"),
+    explanationText: $("explanation-text"),
+    quizFooterActions: $("quiz-footer-actions"),
+    btnNextQ: $("btn-next-q"),
+    btnOpenRefPdf: $("btn-open-ref-pdf"),
+    pdfViewport: $("pdf-viewport"),
+    pdfCanvas: $("pdf-canvas"),
+    pdfStatus: $("pdf-status"),
+    pdfPageNum: $("pdf-page-num"),
+    pdfPageTotal: $("pdf-page-total"),
     resultScore: $("result-score"),
     resultPct: $("result-pct"),
     resultTitle: $("result-title"),
@@ -48,6 +47,7 @@
     statWrong: $("stat-wrong"),
   };
 
+  const PDF_FILE = "materyal.pdf";
   const STORAGE_KEYS = {
     THEME: "ip_quiz_theme",
     STATE: "ip_quiz_saved_state",
@@ -62,7 +62,7 @@
   let isReviewMode = false;
   let sortMode = "sequential";
   let locked = false;
-  let lastScreenBeforePdf = "start";
+  let previousScreen = "start";
   let currentRefPage = 1;
 
   /* --- 1. Kalıcı Tema Yönetimi --- */
@@ -92,7 +92,7 @@
   tickClock();
   setInterval(tickClock, 15000);
 
-  /* --- 3. Hafıza ve Yanlış Listesi --- */
+  /* --- 3. Yanlış Sorular ve Kayıtlı İlerleme --- */
   function getWrongList() {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEYS.WRONGS)) || [];
@@ -138,67 +138,125 @@
     }
   }
 
-  /* --- 4. Sayfa Numarası Çıkarımı ve Açıklama --- */
-  function extractPageNumber(expText) {
+  /* --- 4. PDF.js Mobil Okuyucu (iPhone 16 Tüm Sayfalar & Yakınlaştırma) --- */
+  let pdfDoc = null;
+  let pdfPage = 1;
+  let pdfScale = 1.0;
+  let pdfRendering = false;
+  let pdfPendingPage = null;
+
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+
+  function renderPdfPage(num) {
+    if (!pdfDoc) return;
+    pdfRendering = true;
+    pdfDoc.getPage(num).then((page) => {
+      const containerWidth = els.pdfViewport.clientWidth - 16;
+      const unscaledViewport = page.getViewport({ scale: 1 });
+      const fitScale = containerWidth / unscaledViewport.width;
+      const finalScale = fitScale * pdfScale;
+
+      const dpr = window.devicePixelRatio || 1;
+      const viewport = page.getViewport({ scale: finalScale });
+      const canvas = els.pdfCanvas;
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = Math.floor(viewport.width * dpr);
+      canvas.height = Math.floor(viewport.height * dpr);
+      canvas.style.width = `${Math.floor(viewport.width)}px`;
+      canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const renderTask = page.render({ canvasContext: ctx, viewport: viewport });
+      renderTask.promise.then(() => {
+        pdfRendering = false;
+        els.pdfStatus.classList.add("hidden");
+        els.pdfPageNum.value = num;
+        els.pdfViewport.scrollTop = 0;
+        if (pdfPendingPage !== null) {
+          const nextP = pdfPendingPage;
+          pdfPendingPage = null;
+          renderPdfPage(nextP);
+        }
+      });
+    });
+  }
+
+  function queuePdfPage(num) {
+    if (!pdfDoc) return;
+    const target = Math.max(1, Math.min(pdfDoc.numPages, num));
+    pdfPage = target;
+    if (pdfRendering) {
+      pdfPendingPage = target;
+    } else {
+      renderPdfPage(target);
+    }
+  }
+
+  function openPdfAtPage(pageNum = 1, fromScreen = "start") {
+    previousScreen = fromScreen;
+    pdfScale = 1.0;
+    show("pdf");
+
+    if (!window.pdfjsLib) {
+      els.pdfStatus.textContent = "PDF motoru yüklenemedi. İnternet bağlantınızı kontrol edin.";
+      els.pdfStatus.classList.remove("hidden");
+      return;
+    }
+
+    if (pdfDoc) {
+      queuePdfPage(pageNum);
+    } else {
+      els.pdfStatus.textContent = "Ders kitabı yükleniyor (227 sayfa)...";
+      els.pdfStatus.classList.remove("hidden");
+      pdfjsLib.getDocument(PDF_FILE).promise.then((doc) => {
+        pdfDoc = doc;
+        els.pdfPageTotal.textContent = `/ ${doc.numPages}`;
+        els.pdfPageNum.max = doc.numPages;
+        queuePdfPage(pageNum);
+      }).catch(() => {
+        els.pdfStatus.textContent = "materyal.pdf bulunamadı. Dosya adını kontrol edin.";
+      });
+    }
+  }
+
+  $("btn-open-pdf").addEventListener("click", () => openPdfAtPage(1, "start"));
+  els.btnOpenRefPdf.addEventListener("click", () => openPdfAtPage(currentRefPage, "quiz"));
+  $("btn-close-pdf").addEventListener("click", () => show(previousScreen));
+
+  $("btn-pdf-prev").addEventListener("click", () => queuePdfPage(pdfPage - 1));
+  $("btn-pdf-next").addEventListener("click", () => queuePdfPage(pdfPage + 1));
+  els.pdfPageNum.addEventListener("change", () => {
+    const val = parseInt(els.pdfPageNum.value, 10);
+    if (!isNaN(val)) queuePdfPage(val);
+  });
+
+  $("btn-zoom-in").addEventListener("click", () => {
+    pdfScale = Math.min(3.0, pdfScale + 0.35);
+    renderPdfPage(pdfPage);
+  });
+  $("btn-zoom-out").addEventListener("click", () => {
+    pdfScale = Math.max(0.75, pdfScale - 0.35);
+    renderPdfPage(pdfPage);
+  });
+
+  function extractPageFromExplanation(expText) {
     if (!expText) return 1;
     const match = expText.match(/Sayfa\s*(\d+)/i);
     return match ? parseInt(match[1], 10) : 1;
   }
 
-  function getFallbackExplanation(q) {
-    const t = q.question.toLowerCase();
-    if (t.includes("3308") || t.includes("kalfa") || t.includes("çırak") || t.includes("asgari ücret") || t.includes("sözleşme") || t.includes("myk") || t.includes("önceki öğrenme")) {
-      return "1. Öğrenme Birimi: Mesleki Eğitim (MEB Öğretim Materyali, Sayfa 10–30).";
-    }
-    if (t.includes("ahilik") || t.includes("etik") || t.includes("şed") || t.includes("tarafsızlık") || t.includes("gizlilik")) {
-      return "2. Öğrenme Birimi: Meslek Etiği ve Ahilik (MEB Öğretim Materyali, Sayfa 32–41).";
-    }
-    if (t.includes("iş sağlığı") || t.includes("kaza") || t.includes("baret") || t.includes("maske") || t.includes("risk") || t.includes("ergonomi") || t.includes("tezgâh") || t.includes("forklift")) {
-      return "3. Öğrenme Birimi: İş Sağlığı ve Güvenliği (MEB Öğretim Materyali, Sayfa 42–111).";
-    }
-    if (t.includes("iletişim") || t.includes("gürültü") || t.includes("dönüt") || t.includes("beden dili") || t.includes("göz temas") || t.includes("tokalaşma")) {
-      return "4. Öğrenme Birimi: İletişim ve Beden Dili (MEB Öğretim Materyali, Sayfa 112–137).";
-    }
-    if (t.includes("psikoloji") || t.includes("davranış") || t.includes("gelişim") || t.includes("bilişsel") || t.includes("hazırbulunuşluk") || t.includes("olgunlaşma")) {
-      return "5. Öğrenme Birimi: Eğitim Psikolojisi (MEB Öğretim Materyali, Sayfa 138–155).";
-    }
-    if (t.includes("öğretim") || t.includes("yöntem") || t.includes("takdim") || t.includes("hazırlık") || t.includes("ergenlik") || t.includes("gösteri")) {
-      return "6. Öğrenme Birimi: Mesleki Öğretim Yöntem ve Teknikleri (MEB Öğretim Materyali, Sayfa 156–171).";
-    }
-    if (t.includes("modül") || t.includes("çerçeve") || t.includes("ders") || t.includes("yıllık plan") || t.includes("hafta")) {
-      return "7. Öğrenme Birimi: Öğretim Programı Uygulamaları (MEB Öğretim Materyali, Sayfa 172–197).";
-    }
-    if (t.includes("kalite") || t.includes("verimlilik") || t.includes("maliyet") || t.includes("marka") || t.includes("patent") || t.includes("coğrafi") || t.includes("faydalı model") || t.includes("iso") || t.includes("haccp")) {
-      return "8. Öğrenme Birimi: Kalite ve Verimlilik (MEB Öğretim Materyali, Sayfa 198–211).";
-    }
-    return "9. Öğrenme Birimi: Ölçme ve Değerlendirme Yöntemleri (MEB Öğretim Materyali, Sayfa 212–224).";
-  }
-
-  /* --- 5. Ekran Geçişleri ve Uygulama İçi PDF Okuyucu --- */
+  /* --- 5. Ekran ve Soru Filtreleme --- */
   function show(name) {
     Object.values(screens).forEach((s) => s.classList.remove("active"));
     screens[name].classList.add("active");
     if (name === "start") updateStartScreenUI();
   }
 
-  function openPdfViewer(pageNum, returnToScreen) {
-    lastScreenBeforePdf = returnToScreen;
-    const page = pageNum && pageNum > 0 ? pageNum : 1;
-    const targetUrl = `${PDF_FILE}#page=${page}`;
-    els.pdfPageLabel.textContent = page > 1 ? `Öğretim Materyali (Sayfa ${page})` : "Öğretim Materyali (PDF)";
-    els.btnExtPdf.href = targetUrl;
-    els.pdfIframe.src = targetUrl;
-    show("pdf");
-  }
-
-  els.btnOpenPdf.addEventListener("click", () => openPdfViewer(1, "start"));
-  els.btnWrongBook.addEventListener("click", () => openPdfViewer(currentRefPage, "quiz"));
-  els.btnClosePdf.addEventListener("click", () => {
-    els.pdfIframe.src = "about:blank";
-    show(lastScreenBeforePdf);
-  });
-
-  /* --- 6. Sınav Mantığı --- */
   function shuffle(arr) {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
@@ -210,9 +268,9 @@
 
   function filterIndices(mode) {
     return QUESTIONS.map((_, i) => i).filter((i) => {
-      const isScenario = QUESTIONS[i].question.startsWith("SENARYO:");
-      if (mode === "SENARYO") return isScenario;
-      if (mode === "TEMEL") return !isScenario;
+      const qText = QUESTIONS[i].question;
+      if (mode === "TEMEL") return !qText.startsWith("SENARYO:");
+      if (mode === "SENARYO") return qText.startsWith("SENARYO:");
       return true;
     });
   }
@@ -262,13 +320,12 @@
       : `Soru ${current + 1}/${order.length}`;
     els.scoreBadge.textContent = `⭐ ${correctCount}`;
     els.progressBar.style.width = `${(current / order.length) * 100}%`;
-    els.qUnitTag.textContent = q.question.startsWith("SENARYO:") ? "Atölye & Uygulama Senaryosu" : "İş Pedagojisi Soru Havuzu";
+    els.qUnitTag.textContent = q.question.startsWith("SENARYO:") ? "Atölye Senaryosu" : "İş Pedagojisi";
     els.questionText.textContent = q.question;
 
-    els.feedbackArea.classList.add("hidden");
-    els.btnWrongBook.classList.add("hidden");
-    els.feedback.textContent = "";
-    els.feedback.className = "feedback";
+    els.explanationBox.classList.add("hidden");
+    els.quizFooterActions.classList.add("hidden");
+    els.btnOpenRefPdf.classList.add("hidden");
     els.options.innerHTML = "";
 
     q.options.forEach((text, i) => {
@@ -290,20 +347,15 @@
     buttons.forEach((b) => b.classList.add("disabled"));
 
     const wrongs = getWrongList();
-    const expText = q.explanation || getFallbackExplanation(q);
-    currentRefPage = extractPageNumber(expText);
-
-    els.explanationBox.innerHTML = `<strong>📖 Kitap Kaynağı ve Açıklama:</strong>${expText}`;
-    els.feedbackArea.classList.remove("hidden");
-    els.btnNext.textContent = current + 1 < order.length ? "Sonraki Soru ➔" : "Sınavı Bitir 🏁";
+    const expText = q.explanation || "MEB İş Pedagojisi Kursu Usta Öğreticilik Öğretim Materyali.";
+    currentRefPage = extractPageFromExplanation(expText);
 
     if (choice === q.answer) {
       btn.classList.add("correct");
       correctCount++;
       els.scoreBadge.textContent = `⭐ ${correctCount}`;
-      els.feedback.textContent = "Doğru Cevap! ✓";
-      els.feedback.classList.add("ok");
-      els.btnWrongBook.classList.add("hidden");
+      els.explanationTitle.textContent = "✓ Doğru Cevap!";
+      els.explanationTitle.style.color = "var(--green)";
       navigator.vibrate?.(40);
 
       if (wrongs.includes(qIdx)) {
@@ -312,25 +364,25 @@
     } else {
       btn.classList.add("wrong");
       buttons[q.answer].classList.add("reveal");
-      els.feedback.textContent = `Yanlış! Doğru Cevap: ${LETTERS[q.answer]}`;
-      els.feedback.classList.add("no");
-
-      // Yanlış cevapta ilgili kitap sayfasını açma butonunu göster
-      els.btnWrongBook.textContent = currentRefPage > 1
-        ? `📖 İlgili Bölümü Kitapta Aç (Sayfa ${currentRefPage})`
-        : "📖 İlgili Bölümü Kitapta Aç (PDF)";
-      els.btnWrongBook.classList.remove("hidden");
-
-      navigator.vibrate?.();
+      els.explanationTitle.textContent = `✕ Yanlış! Doğru Cevap: ${LETTERS[q.answer]}`;
+      els.explanationTitle.style.color = "var(--red)";
+      navigator.vibrate?.([80, 60, 80]);
 
       if (!wrongs.includes(qIdx)) {
         saveWrongList([...wrongs, qIdx]);
       }
+
+      // Yanlış cevapta ilgili sayfa butonunu göster
+      els.btnOpenRefPdf.textContent = `📖 İlgili Bölümü Kitapta Aç (Sayfa ${currentRefPage})`;
+      els.btnOpenRefPdf.classList.remove("hidden");
     }
+
+    els.explanationText.textContent = expText;
+    els.explanationBox.classList.remove("hidden");
+    els.quizFooterActions.classList.remove("hidden");
   }
 
   function next() {
-    if (!locked) return;
     current++;
     if (current < order.length) {
       saveProgress();
@@ -370,7 +422,7 @@
     els.progressBar.style.width = "100%";
   }
 
-  /* --- 7. Olay Dinleyicileri --- */
+  /* --- 6. Olay Dinleyicileri --- */
   els.orderToggle.addEventListener("click", (e) => {
     const btn = e.target.closest(".seg-btn");
     if (!btn) return;
@@ -379,17 +431,19 @@
     btn.classList.add("active");
   });
 
-  $("btn-start").addEventListener("click", startNewQuiz);
-  els.btnResume.addEventListener("click", resumeQuiz);
-  els.btnReviewWrong.addEventListener("click", startWrongReview);
-  els.btnNext.addEventListener("click", next);
+  els.btnNextQ.addEventListener("click", () => {
+    if (locked) next();
+  });
 
   document.addEventListener("keydown", (e) => {
-    if (screens.quiz.classList.contains("active") && locked && (e.key === "Enter" || e.key === "ArrowRight")) {
+    if (locked && (e.key === "Enter" || e.key === "ArrowRight")) {
       next();
     }
   });
 
+  $("btn-start").addEventListener("click", startNewQuiz);
+  els.btnResume.addEventListener("click", resumeQuiz);
+  els.btnReviewWrong.addEventListener("click", startWrongReview);
   $("btn-home").addEventListener("click", () => {
     saveProgress();
     show("start");
@@ -400,12 +454,14 @@
     isReviewMode ? startWrongReview() : startNewQuiz();
   });
 
+  // Başlangıç verilerini yükle
   if (typeof QUESTIONS !== "undefined") {
     els.infoCount.textContent = `${QUESTIONS.length} soru`;
-    els.selectUnit.options.textContent = `Tüm Sorular (${QUESTIONS.length})`;
+    els.selectUnit.options[0].textContent = `Tüm Sorular (${QUESTIONS.length})`;
   }
   updateStartScreenUI();
 
+  /* --- 7. PWA Service Worker --- */
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("sw.js").catch(() => {});
